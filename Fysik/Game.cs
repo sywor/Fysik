@@ -18,10 +18,13 @@ namespace Fysik
 		SpriteFont font;
 		Texture2D ballTex;
 		List<Ball> balls = new List<Ball>();
+		Rectangle spawnBox;
+		Color[] colArr = new Color[] { Color.Black, Color.White, Color.Red, Color.Green, Color.Blue, Color.Yellow };
+		Random rand = new Random();
 
 		int totalFrames = 0;
 		int fps = 0;
-		int numballs = 10;
+		int numballs = 100;
 		float elapsedTime = 0.0f;
 
 		public Game()
@@ -50,14 +53,16 @@ namespace Fysik
 			bi.elasticity = 1.0f;
 			bi.scale = 0.3f;
 			bi.gravity = 9.82f;
-			bi.wheight = 1.0f;
+			bi.mass = 1.0f;
 			bi.screenHeight = graphics.PreferredBackBufferHeight;
 			bi.screenWidth = graphics.PreferredBackBufferWidth;
 
+			spawnBox = new Rectangle(0, 0, bi.screenWidth, 100);
+
 			for (int i = 0; i < numballs; i++ )
 			{
-				balls.Add(new Ball(ballTex, bi));
-				System.Threading.Thread.Sleep(100);
+				balls.Add(new Ball(ballTex, bi, spawnBox, colArr[rand.Next(0, colArr.Length)], i));
+				System.Threading.Thread.Sleep(10);
 			}
 		}
 
@@ -70,6 +75,14 @@ namespace Fysik
 				fps = totalFrames;
 				totalFrames = 0;
 				elapsedTime = 0.0f;
+			}
+
+			foreach (Ball b1 in balls)
+			{
+				foreach (Ball b2 in balls)
+				{
+					b1.Collide(b2);
+				}
 			}
 
 			foreach (Ball b in balls)
