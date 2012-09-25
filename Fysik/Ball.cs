@@ -18,6 +18,7 @@ namespace Fysik
 		public float gravity;
 		public float mass;
 		public float elasticity;
+		public float startVelocityMultiplyer;
 		public int screenHeight;
 		public int screenWidth;
 	}
@@ -55,6 +56,16 @@ namespace Fysik
 		public static Matrix2x2 Rotation(double _radian)
 		{
 			float m11 = (float)Math.Cos(_radian);
+			float m12 = (float)Math.Sin(_radian);
+			float m21 = -(float)Math.Sin(_radian);
+			float m22 = (float)Math.Cos(_radian);
+
+			return new Matrix2x2(m11, m12, m21, m22);
+		}
+
+		public static Matrix2x2 AntiRotation(double _radian)
+		{
+			float m11 = (float)Math.Cos(_radian);
 			float m12 = -(float)Math.Sin(_radian);
 			float m21 = (float)Math.Sin(_radian);
 			float m22 = (float)Math.Cos(_radian);
@@ -69,11 +80,10 @@ namespace Fysik
 		Random rand;		
 		Color color;
 		List<Ball> collidningBalls = new List<Ball>();
-		Vector2 myNewPos;
 
 		public int ID;
 		public float radian;
-		public Vector2 centerPos, oldVelocity, newVelocity;
+		public Vector2 oldVelocity, newVelocity, startVel, centerPos, startPos;
 		public BallInfo bi;
 		public Rectangle posScale;
 
@@ -91,53 +101,72 @@ namespace Fysik
 			int y = rand.Next(0, _spawnBox.Height - (int)radian);
 
 			posScale = new Rectangle(x, -y, (int)(tex.Width * bi.scale), (int)(tex.Height * bi.scale));
-			centerPos = new Vector2(posScale.X + (int)radian, posScale.Y + (int)radian);
-			myNewPos = new Vector2(posScale.X, posScale.Y);
-			oldVelocity = new Vector2(0.0f, -1.0f);
-			newVelocity = new Vector2(0.0f, -1.0f);
+
+			oldVelocity = new Vector2(0.0f, 0.0f);
+			newVelocity = new Vector2(0.0f, 0.0f);
+			centerPos = new Vector2(posScale.Center.X, posScale.Center.Y);
+			startPos = centerPos;
+			startVel = new Vector2((float)rand.NextDouble() * _bi.startVelocityMultiplyer, (float)rand.NextDouble() * _bi.startVelocityMultiplyer);
 		}
 
-		public void Collide(Ball _ball)
+		public void Collide(Ball _ball) //_ball = colliding ball!!
 		{
-			if ((_ball.centerPos - centerPos).Length() <= radian * 2 && _ball.ID != ID) //Collision
+			double dist = (centerPos - _ball.centerPos).Length();
+
+			if (dist <= radian * 2)
 			{
-				Vector2 loa = (_ball.centerPos - centerPos); //Line of action
-				double angle = AngleBetween(new Vector2(1.0f, 0.0f), loa); // Angle between X-axis and Line of action
+				//Calculate Center positions for the balls
+				centerPos = new Vector2(posScale.Center.X, posScale.Center.Y);
+				_ball.centerPos = new Vector2(_ball.posScale.Center.X, _ball.posScale.Center.Y);
 
-				double V1p = _ball.oldVelocity.X * Math.Cos(angle); //Ball 1
-				double V1n = -_ball.oldVelocity.Y * Math.Sin(angle);
+				//Line of action
+				Vector2 loa = (_ball.centerPos - centerPos);
 
-				//double V2p = velocity.X * Math.Sin(angle); //Ball 2
-				//double V2n = velocity.Y * Math.Cos(angle);
+				// Angle between X-axis and Line of action
+				double angle = AngleBetweenInRadian(new Vector2(1.0f, 0.0f), loa); 
 
-				double V1pp = ((_ball.bi.mass - bi.elasticity * bi.mass) / (_ball.bi.mass + bi.mass)) * V1p; //Längs med loa Ball1
-				//double V2pp = (((1 + bi.elasticity) * _ball.bi.mass) / (_ball.bi.mass + bi.mass)) * V2p; //Längs med loa Ball2
+				//Calculate rotation matrix
+				Matrix2x2 rotMat = Matrix2x2.Rotation(angle);
 
-				double V1xp = V1pp * Math.Cos(angle) - V1n * Math.Sin(angle);
-				double V1yp = V1pp * Math.Sin(angle) + V1n * Math.Cos(angle);
+				//Rotate the current velocity with the rotation matrix
+				Vector2 Vnp = rotMat * oldVelocity;
 
-				newVelocity.X += (float)V1xp;
-				newVelocity.Y += (float)V1yp;
+				//Simplifies the calculation
+				double tmp = 1.0f / (_ball.bi.mass + bi.mass);
+
+				//Calculate the new velocity vector that is parallel to the line of action
+				double NVx = (bi.mass - bi.elasticity * _ball.bi.mass) * Vnp.X * tmp + (1.0f + bi.elasticity) * _ball.bi.mass * Vnp.Y * tmp;
+
+				//Rotate Vnp to normal XY coordinates
+				newVelocity += Matrix2x2.AntiRotation(angle) * Vnp;
 			}
 		}
 
-		public void Update(GameTime gameTime)
+		public void Update(GameTime _gameTime)
 		{
-			double elapsedTime = gameTime.ElapsedGameTime.TotalSeconds;
+			double elapsedTime = _gameTime.TotalGameTime.TotalSeconds;
 
-			posScale.Y = (int)(posScale.Y + oldVelocity.Y * elapsedTime - 0.5 * bi.gravity * Math.Pow(elapsedTime, 2));
-			posScale.X = (int)(posScale.X + oldVelocity.X * elapsedTime);
+			
+			if (posScale.Y <= (bi.screenHeight - radian * 2))
+			{
+				//Gravity calculation
+				posScale.Y = -(int)(startPos.Y + startVel.Y * elapsedTime - 0.5f * bi.gravity * Math.Pow(elapsedTime, 2));
 
-			oldVelocity = newVelocity;
+				//velocity vector from collision
+				posScale.X += (int)(newVelocity.X * elapsedTime);
+				posScale.Y += (int)(newVelocity.Y * elapsedTime);
+
+				oldVelocity = newVelocity;
+			}
 		}
 
-		private double AngleBetween(Vector2 _v1, Vector2 _v2)
+		private double AngleBetweenInRadian(Vector2 _v1, Vector2 _v2)
 		{
 			float dot = Vector2.Dot(_v1, _v2);
 			float len = _v1.Length() * _v2.Length();
 			float div = dot / len;
 
-			return Math.Acos(div) * (180.0 / Math.PI);
+			return Math.PI * (Math.Acos(div) * (180.0 / Math.PI)) / 180.0;
 		}
 
 		public void Draw(SpriteBatch _draw)

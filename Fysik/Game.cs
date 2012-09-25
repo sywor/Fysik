@@ -24,8 +24,9 @@ namespace Fysik
 
 		int totalFrames = 0;
 		int fps = 0;
-		int numballs = 100;
+		int numballs = 200;
 		float elapsedTime = 0.0f;
+		double totalgameTime = 0.0f;
 
 		public Game()
 		{
@@ -33,8 +34,8 @@ namespace Fysik
 			Content.RootDirectory = "Content";
 			graphics.PreferredBackBufferHeight = 720;
 			graphics.PreferredBackBufferWidth = 1280;
-			//graphics.SynchronizeWithVerticalRetrace = false;
-			//IsFixedTimeStep = false;
+			graphics.SynchronizeWithVerticalRetrace = false;
+			IsFixedTimeStep = false;
 			IsMouseVisible = true;
 		}
 
@@ -50,10 +51,11 @@ namespace Fysik
 			ballTex = Content.Load<Texture2D>("fysikBall");
 
 			BallInfo bi = new BallInfo();
-			bi.elasticity = 1.0f;
-			bi.scale = 0.3f;
+			bi.elasticity = 0.7f;
+			bi.scale = 0.2f;
 			bi.gravity = 9.82f;
 			bi.mass = 1.0f;
+			bi.startVelocityMultiplyer = 5.5f;
 			bi.screenHeight = graphics.PreferredBackBufferHeight;
 			bi.screenWidth = graphics.PreferredBackBufferWidth;
 
@@ -69,6 +71,7 @@ namespace Fysik
 		protected override void Update(GameTime gameTime)
 		{
 			elapsedTime += (float)gameTime.ElapsedGameTime.TotalMilliseconds;
+			totalgameTime = gameTime.TotalGameTime.TotalSeconds;
 
 			if (elapsedTime >= 1000.0f)
 			{
@@ -81,6 +84,11 @@ namespace Fysik
 			{
 				foreach (Ball b2 in balls)
 				{
+					if (b1.ID == b2.ID)
+					{
+						continue;
+					}
+
 					b1.Collide(b2);
 				}
 			}
@@ -105,7 +113,7 @@ namespace Fysik
 			GraphicsDevice.Clear(Color.Gray);
 
 			spriteBatch.Begin();
-			spriteBatch.DrawString(font, string.Format("FPS: {0}", fps), new Vector2(10.0f, 10.0f), Color.White);
+			spriteBatch.DrawString(font, "FPS: " + fps + " Time: " + Math.Round(totalgameTime, 2), new Vector2(10.0f, 10.0f), Color.White);
 
 			foreach (Ball b in balls)
 			{
