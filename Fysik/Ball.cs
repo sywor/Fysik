@@ -97,16 +97,21 @@ namespace Fysik
 			rand = new Random();
 			radian = (tex.Height * bi.scale) / 2;
 
-			int x = rand.Next(0, _spawnBox.Width - (int)radian);
-			int y = rand.Next(0, _spawnBox.Height - (int)radian);
+            // X changed to static for test purposes
+            int y = ID * 200;// rand.Next(0, _spawnBox.Height - (int)radian);
+            int x = 100;
 
-			posScale = new Rectangle(x, -y, (int)(tex.Width * bi.scale), (int)(tex.Height * bi.scale));
+			posScale = new Rectangle(x, y, (int)(tex.Width * bi.scale), (int)(tex.Height * bi.scale));
 
-			oldVelocity = new Vector2(0.0f, 0.0f);
-			newVelocity = new Vector2(0.0f, 0.0f);
+			//oldVelocity = new Vector2(0.0f, 0.0f);
+			//newVelocity = new Vector2(0.0f, 0.0f);
 			centerPos = new Vector2(posScale.Center.X, posScale.Center.Y);
 			startPos = centerPos;
-			startVel = new Vector2((float)rand.NextDouble() * _bi.startVelocityMultiplyer, (float)rand.NextDouble() * _bi.startVelocityMultiplyer);
+            startVel = new Vector2(0, 0.0f);// new Vector2((float)rand.NextDouble() * _bi.startVelocityMultiplyer, (float)rand.NextDouble() * _bi.startVelocityMultiplyer);
+
+            oldVelocity = new Vector2(0.0f, 9.82f);
+            newVelocity = oldVelocity;
+            
 		}
 
 		public void Collide(Ball _ball) //_ball = colliding ball!!
@@ -121,9 +126,11 @@ namespace Fysik
 
 				//Line of action
 				Vector2 loa = (_ball.centerPos - centerPos);
+                float lo = _ball.centerPos.Y - centerPos.Y;
+                Vector2 lod = new Vector2(0.0f, lo);
 
 				// Angle between X-axis and Line of action
-				double angle = AngleBetweenInRadian(new Vector2(1.0f, 0.0f), loa); 
+				double angle = AngleBetweenInRadian(new Vector2(1.0f, 0.0f), lod); 
 
 				//Calculate rotation matrix
 				Matrix2x2 rotMat = Matrix2x2.Rotation(angle);
@@ -144,17 +151,33 @@ namespace Fysik
 
 		public void Update(GameTime _gameTime)
 		{
-			double elapsedTime = _gameTime.TotalGameTime.TotalSeconds;
-
+			double elap = _gameTime.TotalGameTime.TotalSeconds;
+            double elapsedTime = elap / 10.0;
 			
-			if (posScale.Y <= (bi.screenHeight - radian * 2))
-			{
+            //if (posScale.Y <= (bi.screenHeight - radian * 2))
+            if( posScale.Y <= 650 )     // hardcoded border, slightly smaller than windowHeight
+            {
 				//Gravity calculation
-				posScale.Y = -(int)(startPos.Y + startVel.Y * elapsedTime - 0.5f * bi.gravity * Math.Pow(elapsedTime, 2));
+				//posScale.Y = -(int)(startPos.Y + startVel.Y * elapsedTime - 0.5f * bi.gravity * Math.Pow(elapsedTime, 2));
 
-				//velocity vector from collision
-				posScale.X += (int)(newVelocity.X * elapsedTime);
-				posScale.Y += (int)(newVelocity.Y * elapsedTime);
+                // Data is divided to make debugging easier
+                // calculate acceleration according to 'g = m*a' => 'a = g/m'
+                float acceleration = 0.0f;
+                acceleration = (float)(bi.mass * 9.82f * elapsedTime);
+
+                // reduce size of velocity according to timestep
+                Vector2 tam = new Vector2(newVelocity.X * (float)elapsedTime, newVelocity.Y * (float)elapsedTime);
+
+                // add gravitation (note: this is a FAULTY application)
+                Vector2 dir = new Vector2(tam.X, tam.Y + acceleration);
+
+                // change centerPos first, to avoid truncation
+                centerPos.X += (float)(dir.X * elapsedTime);
+                centerPos.Y += (float)(dir.Y * elapsedTime);
+
+                // truncate that bitch
+                posScale.X = (int)centerPos.X;
+                posScale.Y = (int)centerPos.Y;
 
 				oldVelocity = newVelocity;
 			}

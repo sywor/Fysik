@@ -24,7 +24,7 @@ namespace Fysik
 
 		int totalFrames = 0;
 		int fps = 0;
-		int numballs = 200;
+		int numballs = 3;
 		float elapsedTime = 0.0f;
 		double totalgameTime = 0.0f;
 
@@ -55,17 +55,19 @@ namespace Fysik
 			bi.scale = 0.2f;
 			bi.gravity = 9.82f;
 			bi.mass = 1.0f;
-			bi.startVelocityMultiplyer = 5.5f;
+			bi.startVelocityMultiplyer = 1.5f;
 			bi.screenHeight = graphics.PreferredBackBufferHeight;
 			bi.screenWidth = graphics.PreferredBackBufferWidth;
 
 			spawnBox = new Rectangle(0, 0, bi.screenWidth, 100);
 
-			for (int i = 0; i < numballs; i++ )
-			{
-				balls.Add(new Ball(ballTex, bi, spawnBox, colArr[rand.Next(0, colArr.Length)], i));
-				System.Threading.Thread.Sleep(10);
-			}
+            for (int i = 0; i < numballs; i++)
+            {
+                balls.Add(new Ball(ballTex, bi, spawnBox, colArr[rand.Next(0, colArr.Length)], i));
+                System.Threading.Thread.Sleep(10);
+            }
+           // balls.Add(new Ball(ballTex, bi, spawnBox, colArr[rand.Next(0, colArr.Length)], 21));
+           // balls.Add(new Ball(ballTex, bi, spawnBox, colArr[rand.Next(0, colArr.Length)], 55));
 		}
 
 		protected override void Update(GameTime gameTime)
